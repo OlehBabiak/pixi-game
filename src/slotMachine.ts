@@ -18,7 +18,13 @@ interface Reel {
   stopping?: boolean;
 }
 
-type GameState = "idle" | "spinning" | "stopping" | "evaluating";
+enum SlotState {
+  IDLE = "IDLE",
+  SPINNING = "SPINNING",
+  STOPPING = "STOPPING",
+  SHOW_WIN = "SHOW_WIN",
+  FREE_SPIN = "FREE_SPIN"
+}
 
 export class SlotMachine extends Container {
   private app: Application;
@@ -28,13 +34,13 @@ export class SlotMachine extends Container {
   private readonly symbolSize: number = 100;
   private readonly reelHeight: number = 3;
   private readonly reelCount: number = 3;
+  private state: SlotState = SlotState.IDLE;
   private stoppedReels: number = 0;
-  private state: GameState = "idle";
-
-  private setState(newState: GameState) {
-    console.log(`FSM: ${this.state} → ${newState}`);
-    this.state = newState;
-  }
+  private isAutoplay = false;
+  private autoplayRounds = 0;
+  private maxAutoplayRounds = 10;
+  private freeSpins = 0;
+  private balance: number = 100;
 
   constructor(app: Application) {
     super();
@@ -46,7 +52,29 @@ export class SlotMachine extends Container {
     this.addSpinButton();
   }
 
-  createReels() {
+  private updateWinDisplay() {
+    const display = document.getElementById("win-display");
+    if (display) {
+      display.textContent = `Balance: $${this.balance}`;
+    }
+  }
+
+  private updateFreeSpinDisplay() {
+    const display = document.getElementById("free_spin");
+    if (display) {
+      display.textContent = `Free Spines: ${this.freeSpins}`;
+    }
+  }
+
+  private setState(newState: SlotState) {
+    console.log(`FSM: ${this.state} → ${newState}`);
+    console.log("AutoplayRounds: ", this.autoplayRounds);
+    console.log("Free Spins: ", this.freeSpins);
+    this.state = newState;
+  }
+
+  private createReels() {
+    this.updateWinDisplay();
     const spacing = 40;
     const baseX =
       (this.app.screen.width - (this.reelCount * this.reelWidth + (this.reelCount - 1) * spacing)) /
@@ -62,7 +90,6 @@ export class SlotMachine extends Container {
       const frame = new Graphics()
         .rect(0, this.symbolSize / 2, this.reelWidth, this.symbolSize * this.reelHeight)
         .stroke({ width: 4, color: 0xffd700 });
-
       frame.x = container.x;
       frame.y = container.y;
       this.app.stage.addChild(frame);
@@ -111,11 +138,12 @@ export class SlotMachine extends Container {
     this.app.ticker.add(delta => this.updateReels(delta.deltaMS));
   }
 
-  addSpinButton() {
+  private addSpinButton() {
     const container = new Container();
 
     // Background
     const background = new Graphics().fill(0x3333ff).roundRect(0, 0, 200, 60, 10).fill();
+    const disabledBackground = new Graphics().fill(0x666666).roundRect(0, 0, 200, 60, 10).fill();
 
     const gradient = new FillGradient({
       type: "linear",
@@ -149,6 +177,10 @@ export class SlotMachine extends Container {
     button.anchor.set(0.5);
     button.x = 100;
     button.y = 30;
+    const isDisabled =
+      (this.freeSpins > 0 || this.autoplayRounds > 0) && this.state !== SlotState.IDLE;
+    console.log("isDisabled: ", isDisabled);
+    container.addChild(isDisabled ? disabledBackground : background, button);
 
     container.interactive = true;
     container.eventMode = "dynamic";
@@ -157,16 +189,52 @@ export class SlotMachine extends Container {
     container.y = this.app.screen.height - 80;
     container.pivot.set(100, 30);
 
-    container.on("pointerdown", () => this.spinReels());
+    container.on("pointerdown", () => {
+      if (this.state === SlotState.IDLE) {
+        this.spinReels();
+      } else if (this.state === SlotState.FREE_SPIN) {
+        this.spinReels();
+        this.freeSpins--;
+        this.updateFreeSpinDisplay();
+      }
+    });
 
-    container.addChild(background, button);
+    // Autoplay button
+    const autoText = new Text({ text: "AUTO", style });
+    autoText.anchor.set(0.5);
+    autoText.x = 300;
+    autoText.y = 30;
+    autoText.interactive = true;
+    autoText.eventMode = "dynamic";
+    autoText.cursor = "pointer";
+    autoText.on("pointerdown", () => {
+      this.isAutoplay = !this.isAutoplay;
+      if (this.isAutoplay && this.state === SlotState.IDLE && this.balance >= 10) {
+        this.autoplayRounds = this.maxAutoplayRounds;
+        this.spinReels();
+      } else {
+        alert("Not enough rounds to autoplay!");
+      }
+    });
+
+    container.addChild(autoText);
     this.app.stage.addChild(container);
   }
 
-  spinReels() {
-    if (this.state !== "idle") return;
-    this.setState("spinning");
+  private spinReels() {
+    if (this.state !== SlotState.IDLE && this.state !== SlotState.FREE_SPIN) return;
+    if (this.balance < 10) {
+      alert("Not enough balance to spin!");
+      this.setState(SlotState.IDLE);
+      this.updateWinDisplay();
+      this.isAutoplay = false;
+      this.autoplayRounds = 0;
+      return;
+    }
+    this.setState(SlotState.SPINNING);
     this.stoppedReels = 0;
+    this.balance -= 10; // Deduct cost per spin
+    this.updateWinDisplay();
 
     for (let i = 0; i < this.reels.length; i++) {
       const reel = this.reels[i];
@@ -179,7 +247,7 @@ export class SlotMachine extends Container {
           reel.stopping = true;
 
           if (i === this.reels.length - 1) {
-            this.setState("stopping");
+            this.setState(SlotState.STOPPING);
           }
         },
         1000 + i * 600
@@ -187,7 +255,7 @@ export class SlotMachine extends Container {
     }
   }
 
-  checkWin() {
+  private checkWin() {
     let winAmount = 0;
     const winningLines: string[] = [];
 
@@ -227,11 +295,17 @@ export class SlotMachine extends Container {
       }
     });
 
-    const messageText =
+    // Simulate bonus free spins
+    if (Math.random() < 0.2) {
+      this.freeSpins += 1;
+      this.updateFreeSpinDisplay();
+    }
+
+    const winText =
       winAmount > 0 ? `WIN ${winAmount}$!\n(${winningLines.join(", ")})` : "TRY AGAIN";
 
     const message = new Text({
-      text: messageText,
+      text: winText,
       style: new TextStyle({
         fontFamily: "Arial",
         fontSize: 42,
@@ -244,15 +318,28 @@ export class SlotMachine extends Container {
     message.x = this.app.screen.width / 2;
     message.y = 40;
     this.app.stage.addChild(message);
+    this.balance += winAmount;
+    this.updateWinDisplay();
 
     setTimeout(() => {
       this.app.stage.removeChild(message);
-      this.setState("idle");
+      if (this.freeSpins > 0) {
+        this.setState(SlotState.FREE_SPIN);
+        this.spinReels();
+        this.freeSpins--;
+        this.updateFreeSpinDisplay();
+      } else if (this.isAutoplay && this.autoplayRounds > 0) {
+        this.autoplayRounds--;
+        this.setState(SlotState.IDLE);
+        this.spinReels();
+      } else {
+        this.setState(SlotState.IDLE);
+      }
     }, 1500);
   }
 
-  updateReels(deltaMS: number) {
-    const delta = deltaMS / 16.6667;
+  private updateReels(deltaMS: number) {
+    const delta = deltaMS / 16.6667; // 60 FPS
 
     for (const reel of this.reels) {
       if (!reel.spinning) continue;
@@ -278,7 +365,6 @@ export class SlotMachine extends Container {
         reel.spinning = false;
         reel.stopping = false;
         reel.speed = 0;
-
         reel.position = 0;
         for (let i = 0; i < reel.symbols.length; i++) {
           reel.symbols[i].y = i * this.symbolSize;
@@ -286,14 +372,14 @@ export class SlotMachine extends Container {
 
         this.stoppedReels++;
         if (this.stoppedReels === this.reels.length) {
-          this.setState("evaluating");
+          this.setState(SlotState.SHOW_WIN);
           this.checkWin();
         }
       }
     }
   }
 
-  randomSymbol() {
+  private randomSymbol() {
     const index = Math.floor(Math.random() * this.symbols.length);
     return this.symbols[index];
   }
