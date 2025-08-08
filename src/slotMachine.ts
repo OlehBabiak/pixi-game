@@ -71,6 +71,7 @@ export class SlotMachine extends Container {
     console.log("AutoplayRounds: ", this.autoplayRounds);
     console.log("Free Spins: ", this.freeSpins);
     this.state = newState;
+    this.updateSpinButton();
   }
 
   private createReels() {
@@ -138,6 +139,10 @@ export class SlotMachine extends Container {
     this.app.ticker.add(delta => this.updateReels(delta.deltaMS));
   }
 
+  private updateSpinButton() {
+    this.addSpinButton();
+  }
+
   private addSpinButton() {
     const container = new Container();
 
@@ -178,13 +183,12 @@ export class SlotMachine extends Container {
     button.x = 100;
     button.y = 30;
     const isDisabled =
-      (this.freeSpins > 0 || this.autoplayRounds > 0) && this.state !== SlotState.IDLE;
-    console.log("isDisabled: ", isDisabled);
+      this.freeSpins > 0 || this.autoplayRounds > 0 || this.state !== SlotState.IDLE;
     container.addChild(isDisabled ? disabledBackground : background, button);
 
     container.interactive = true;
     container.eventMode = "dynamic";
-    container.cursor = "pointer";
+    container.cursor = isDisabled ? "not-allowed" : "pointer";
     container.x = this.app.screen.width / 2;
     container.y = this.app.screen.height - 80;
     container.pivot.set(100, 30);
@@ -213,6 +217,7 @@ export class SlotMachine extends Container {
         this.autoplayRounds = this.maxAutoplayRounds;
         this.spinReels();
       } else {
+        this.updateSpinButton();
         alert("Not enough rounds to autoplay!");
       }
     });
