@@ -40,6 +40,8 @@ export class SlotMachine extends Container {
   private balance: number = 100;
   private fsm: SlotStateMachine;
   private spinButtonContainer?: Container;
+  private balanceContainer?: Container;
+  private freeSpinContainer?: Container;
 
   constructor(app: Application) {
     super();
@@ -89,17 +91,51 @@ export class SlotMachine extends Container {
   }
 
   private updateWinDisplay() {
-    const display = document.getElementById("win-display");
-    if (display) {
-      display.textContent = `Balance: $${this.balance}`;
+    if (this.balanceContainer) {
+      this.app.stage.removeChild(this.balanceContainer);
     }
+
+    const container = new Container();
+    this.balanceContainer = container;
+
+    const style = new TextStyle({
+      fontFamily: "Arial",
+      fontSize: 24,
+      fill: 0xffffff
+    });
+
+    const balance = new Text({
+      text: `Balance: $${this.balance}`,
+      style: style
+    });
+    balance.x = 20;
+    balance.y = 30;
+
+    container.addChild(balance);
+    this.app.stage.addChild(container);
   }
 
   private updateFreeSpinDisplay() {
-    const display = document.getElementById("free_spin");
-    if (display) {
-      display.textContent = `Free Spines: ${this.freeSpins}`;
+    if (this.freeSpinContainer) {
+      this.app.stage.removeChild(this.freeSpinContainer);
     }
+
+    const container = new Container();
+    this.freeSpinContainer = container;
+    const style = new TextStyle({
+      fontFamily: "Arial",
+      fontSize: 24,
+      fill: 0xffffff
+    });
+    const freeSpin = new Text({
+      text: `Free Spines: ${this.freeSpins}`,
+      style: style
+    });
+    freeSpin.x = 20;
+    freeSpin.y = 70;
+
+    container.addChild(freeSpin);
+    this.app.stage.addChild(container);
   }
 
   private createReels() {
