@@ -1,4 +1,5 @@
 export enum SlotState {
+  LOADING = "LOADING",
   IDLE = "IDLE",
   SPINNING = "SPINNING",
   STOPPING = "STOPPING",
@@ -9,7 +10,7 @@ export enum SlotState {
 type StateChangeCallback = (newState: SlotState, oldState: SlotState) => void;
 
 export class SlotStateMachine {
-  private _state: SlotState = SlotState.IDLE;
+  private _state: SlotState = SlotState.LOADING;
   private listeners: StateChangeCallback[] = [];
 
   public get state() {
@@ -20,6 +21,7 @@ export class SlotStateMachine {
     if (this._state === newState) return;
     const oldState = this._state;
     this._state = newState;
+    console.log(`FSM: ${oldState} → ${newState}`);
     this.listeners.forEach(cb => cb(newState, oldState));
   }
 

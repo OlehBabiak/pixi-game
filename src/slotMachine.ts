@@ -5,22 +5,29 @@ import {
   Graphics,
   Text,
   TextStyle,
-  TextStyleAlign
+  TextStyleAlign,
+  Sprite,
+  Assets
 } from "pixi.js";
 import { SlotStateMachine, SlotState } from "./SlotStateMachine";
+import { GameLoader } from "./GameLoader";
 interface Reel {
   container: Container;
-  symbols: Text[];
+  symbols: Sprite[];
   position: number;
   speed: number;
   targetStop: number;
   spinning: boolean;
   stopping?: boolean;
 }
+
+interface SymbolSprite extends Sprite {
+  symbolKey: string;
+}
 export class SlotMachine extends Container {
   private app: Application;
   private reels: Reel[] = [];
-  private symbols: string[] = ["🍒", "🔔", "🍋", "🍊", "⭐️", "7️⃣"];
+  private symbolKeys = ["cherry", "bell", "lemon", "orange", "star", "seven"];
   private readonly reelWidth: number = 150;
   private readonly symbolSize: number = 100;
   private readonly reelHeight: number = 3;
@@ -32,6 +39,7 @@ export class SlotMachine extends Container {
   private freeSpins = 0;
   private balance: number = 100;
   private fsm: SlotStateMachine;
+  private spinButtonContainer?: Container;
 
   constructor(app: Application) {
     super();
@@ -39,6 +47,8 @@ export class SlotMachine extends Container {
     this.fsm = new SlotStateMachine();
     this.fsm.onChange(newState => {
       switch (newState) {
+        case SlotState.LOADING:
+          break;
         case SlotState.IDLE:
           this.updateSpinButton();
           break;
@@ -58,10 +68,24 @@ export class SlotMachine extends Container {
   }
 
   start() {
-    this.createReels();
-    this.updateSpinButton();
-    this.updateWinDisplay();
-    this.updateFreeSpinDisplay();
+    this.fsm.setState(SlotState.LOADING);
+
+    const loader = new GameLoader(() => {
+      this.app.stage.removeChild(loader);
+      this.createReels();
+      this.updateFreeSpinDisplay();
+      this.updateSpinButton();
+      this.updateWinDisplay();
+
+      this.fsm.setState(SlotState.IDLE);
+    });
+
+    this.app.stage.addChild(loader);
+  }
+
+  private randomSymbolKey() {
+    const index = Math.floor(Math.random() * this.symbolKeys.length);
+    return this.symbolKeys[index];
   }
 
   private updateWinDisplay() {
@@ -103,7 +127,6 @@ export class SlotMachine extends Container {
       const maskShape = new Graphics()
         .rect(0, this.symbolSize / 2, this.reelWidth, this.symbolSize * this.reelHeight)
         .fill(0xffffff);
-
       maskShape.x = container.x;
       maskShape.y = container.y;
       this.app.stage.addChild(maskShape);
@@ -119,20 +142,19 @@ export class SlotMachine extends Container {
       };
 
       for (let j = 0; j < this.reelHeight + 4; j++) {
-        const style = new TextStyle({
-          fontFamily: "Arial",
-          fontSize: 64,
-          fill: 0xffffff,
-          align: "center" as TextStyleAlign
-        });
+        const key = this.randomSymbolKey();
+        const texture = Assets.get(key);
+        const symbol: SymbolSprite = new Sprite(texture) as SymbolSprite;
 
-        const symbol = new Text({
-          text: this.randomSymbol(),
-          style: style
-        });
         symbol.anchor.set(0.5);
         symbol.x = this.reelWidth / 2;
         symbol.y = j * this.symbolSize;
+        symbol.width = this.symbolSize;
+        symbol.height = this.symbolSize;
+
+        // Зберігаємо ключ символу для checkWin
+        symbol.symbolKey = key;
+
         container.addChild(symbol);
         reel.symbols.push(symbol);
       }
@@ -144,8 +166,11 @@ export class SlotMachine extends Container {
   }
 
   private updateSpinButton() {
+    if (this.spinButtonContainer) {
+      this.app.stage.removeChild(this.spinButtonContainer);
+    }
     const container = new Container();
-
+    this.spinButtonContainer = container;
     // Background
     const background = new Graphics().fill(0x3333ff).roundRect(0, 0, 200, 60, 10).fill();
     const disabledBackground = new Graphics().fill(0x666666).roundRect(0, 0, 200, 60, 10).fill();
@@ -186,22 +211,25 @@ export class SlotMachine extends Container {
       this.freeSpins > 0 || this.autoplayRounds > 0 || this.fsm.state !== SlotState.IDLE;
     container.addChild(isDisabled ? disabledBackground : background, button);
 
-    container.interactive = true;
+    container.interactive = !isDisabled;
     container.eventMode = "dynamic";
     container.cursor = isDisabled ? "not-allowed" : "pointer";
     container.x = this.app.screen.width / 2;
     container.y = this.app.screen.height - 80;
     container.pivot.set(100, 30);
 
-    container.on("pointerdown", () => {
-      if (this.fsm.state === SlotState.IDLE) {
-        this.spinReels();
-      } else if (this.fsm.state === SlotState.FREE_SPIN) {
-        this.spinReels();
-        this.freeSpins--;
-        this.updateFreeSpinDisplay();
-      }
-    });
+    if (!isDisabled) {
+      container.on("pointerdown", () => {
+        if (this.fsm.state === SlotState.IDLE) {
+          this.spinReels();
+          this.updateSpinButton();
+        } else if (this.fsm.state === SlotState.FREE_SPIN) {
+          this.spinReels();
+          this.freeSpins--;
+          this.updateFreeSpinDisplay();
+        }
+      });
+    }
 
     // Autoplay button
     const autoText = new Text({ text: "AUTO", style });
@@ -216,6 +244,7 @@ export class SlotMachine extends Container {
       if (this.isAutoplay && this.fsm.state === SlotState.IDLE && this.balance >= 10) {
         this.autoplayRounds = this.maxAutoplayRounds;
         this.spinReels();
+        this.updateSpinButton();
       } else {
         this.updateSpinButton();
         alert("Not enough rounds to autoplay!");
@@ -247,7 +276,7 @@ export class SlotMachine extends Container {
       reel.spinning = true;
       setTimeout(
         () => {
-          reel.targetStop = Math.floor(Math.random() * this.symbols.length);
+          reel.targetStop = Math.floor(Math.random() * this.symbolKeys.length);
           reel.stopping = true;
           if (i === this.reels.length - 1) this.fsm.setState(SlotState.STOPPING);
         },
@@ -261,11 +290,11 @@ export class SlotMachine extends Container {
     const winningLines: string[] = [];
 
     const payLines = {
-      top: this.reels.map(reel => reel.symbols[1].text),
-      middle: this.reels.map(reel => reel.symbols[2].text),
-      bottom: this.reels.map(reel => reel.symbols[3].text),
-      diagonalDown: this.reels.map((reel, i) => reel.symbols[1 + i]?.text),
-      diagonalUp: this.reels.map((reel, i) => reel.symbols[3 - i]?.text)
+      top: this.reels.map(reel => (reel.symbols[1] as SymbolSprite).symbolKey),
+      middle: this.reels.map(reel => (reel.symbols[2] as SymbolSprite).symbolKey),
+      bottom: this.reels.map(reel => (reel.symbols[3] as SymbolSprite).symbolKey),
+      diagonalDown: this.reels.map((reel, i) => (reel.symbols[1 + i] as SymbolSprite)?.symbolKey),
+      diagonalUp: this.reels.map((reel, i) => (reel.symbols[3 - i] as SymbolSprite)?.symbolKey)
     };
 
     Object.entries(payLines).forEach(([payLine, symbols]) => {
@@ -292,7 +321,6 @@ export class SlotMachine extends Container {
       winningLines.push(payLine);
     });
 
-    // Simulate bonus free spins
     if (Math.random() < 0.2) {
       this.freeSpins += 1;
       this.updateFreeSpinDisplay();
@@ -345,10 +373,15 @@ export class SlotMachine extends Container {
       if (reel.position >= 1) {
         reel.position = 0;
 
-        const first = reel.symbols.shift() || new Text("");
-        first.x = this.reelWidth / 2;
-        first.text = this.randomSymbol();
+        const first = reel.symbols.shift()! as SymbolSprite;
+        const key = this.randomSymbolKey();
+        first.texture = Assets.get(key);
+        first.width = this.symbolSize;
+        first.height = this.symbolSize;
         first.y = reel.symbols[reel.symbols.length - 1].y + this.symbolSize;
+
+        first.symbolKey = key;
+
         reel.symbols.push(first);
       }
 
@@ -363,6 +396,7 @@ export class SlotMachine extends Container {
         reel.stopping = false;
         reel.speed = 0;
         reel.position = 0;
+
         for (let i = 0; i < reel.symbols.length; i++) {
           reel.symbols[i].y = i * this.symbolSize;
         }
@@ -373,10 +407,5 @@ export class SlotMachine extends Container {
         }
       }
     }
-  }
-
-  private randomSymbol() {
-    const index = Math.floor(Math.random() * this.symbols.length);
-    return this.symbols[index];
   }
 }
