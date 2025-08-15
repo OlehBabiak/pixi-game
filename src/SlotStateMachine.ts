@@ -6,12 +6,19 @@ export enum SlotState {
   SHOW_WIN = "SHOW_WIN",
   FREE_SPIN = "FREE_SPIN"
 }
+export interface Observer {
+  update(newState: SlotState, oldState: SlotState): void;
+}
 
-type StateChangeCallback = (newState: SlotState, oldState: SlotState) => void;
+// Subject
+interface Subject {
+  subscribe(observer: Observer): void;
+  notify(newState: SlotState, oldState: SlotState): void;
+}
 
-export class SlotStateMachine {
+export class SlotStateMachine implements Subject {
   private _state: SlotState = SlotState.LOADING;
-  private listeners: StateChangeCallback[] = [];
+  private observers: Observer[] = [];
 
   public get state() {
     return this._state;
@@ -22,10 +29,16 @@ export class SlotStateMachine {
     const oldState = this._state;
     this._state = newState;
     console.log(`FSM: ${oldState} → ${newState}`);
-    this.listeners.forEach(cb => cb(newState, oldState));
+    this.notify(newState, oldState);
   }
 
-  public onChange(callback: StateChangeCallback) {
-    this.listeners.push(callback);
+  subscribe(observer: Observer): void {
+    this.observers.push(observer);
+  }
+
+  notify(newState: SlotState, oldState: SlotState): void {
+    for (const listener of this.observers) {
+      listener.update(newState, oldState);
+    }
   }
 }

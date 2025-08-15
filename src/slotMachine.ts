@@ -9,7 +9,7 @@ import {
   Sprite,
   Assets
 } from "pixi.js";
-import { SlotStateMachine, SlotState } from "./SlotStateMachine";
+import { SlotStateMachine, SlotState, Observer } from "./SlotStateMachine";
 import { GameLoader } from "./GameLoader";
 interface Reel {
   container: Container;
@@ -24,7 +24,7 @@ interface Reel {
 interface SymbolSprite extends Sprite {
   symbolKey: string;
 }
-export class SlotMachine extends Container {
+export class SlotMachine extends Container implements Observer {
   private app: Application;
   private reels: Reel[] = [];
   private symbolKeys = ["cherry", "bell", "lemon", "orange", "star", "seven"];
@@ -47,29 +47,31 @@ export class SlotMachine extends Container {
     super();
     this.app = app;
     this.fsm = new SlotStateMachine();
-    this.fsm.onChange(newState => {
-      switch (newState) {
-        case SlotState.LOADING:
-          break;
-        case SlotState.IDLE:
-          this.updateSpinButton();
-          break;
-        case SlotState.SPINNING:
-          this.startSpin();
-          break;
-        case SlotState.STOPPING:
-          break;
-        case SlotState.SHOW_WIN:
-          this.checkWin();
-          break;
-        case SlotState.FREE_SPIN:
-          this.spinReels();
-          break;
-      }
-    });
+    this.fsm.subscribe(this);
   }
 
-  start() {
+  update(newState: SlotState): void {
+    switch (newState) {
+      case SlotState.LOADING:
+        break;
+      case SlotState.IDLE:
+        this.updateSpinButton();
+        break;
+      case SlotState.SPINNING:
+        this.startSpin();
+        break;
+      case SlotState.STOPPING:
+        break;
+      case SlotState.SHOW_WIN:
+        this.checkWin();
+        break;
+      case SlotState.FREE_SPIN:
+        this.spinReels();
+        break;
+    }
+  }
+
+  public start() {
     this.fsm.setState(SlotState.LOADING);
 
     const loader = new GameLoader(() => {
@@ -198,7 +200,7 @@ export class SlotMachine extends Container {
       this.reels.push(reel);
     }
 
-    this.app.ticker.add(delta => this.updateReels(delta.deltaMS));
+    this.app.ticker.add(ticker => this.updateReels(ticker.deltaMS));
   }
 
   private updateSpinButton() {
