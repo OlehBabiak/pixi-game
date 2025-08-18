@@ -73,18 +73,28 @@ export class SlotMachine extends Container implements Observer {
 
   public start() {
     this.fsm.setState(SlotState.LOADING);
-
     const loader = new GameLoader(() => {
       this.app.stage.removeChild(loader);
+      this.createBackground();
       this.createReels();
       this.updateFreeSpinDisplay();
       this.updateSpinButton();
       this.updateWinDisplay();
-
       this.fsm.setState(SlotState.IDLE);
     });
 
     this.app.stage.addChild(loader);
+  }
+
+  private createBackground() {
+    const secondaryBGTexture = Assets.get("secondaryBG");
+
+    if (secondaryBGTexture) {
+      const secondaryBG = new Sprite(secondaryBGTexture);
+      secondaryBG.width = this.app.screen.width;
+      secondaryBG.height = this.app.screen.height;
+      this.app.stage.addChildAt(secondaryBG, 0); // на задній план Pixi
+    }
   }
 
   private randomSymbolKey() {
@@ -183,7 +193,7 @@ export class SlotMachine extends Container implements Observer {
         const key = this.randomSymbolKey();
         const texture = Assets.get(key);
         const symbol: SymbolSprite = new Sprite(texture) as SymbolSprite;
-
+        console.log(`Assets: ${Assets.get(key)} for key ${key}`);
         symbol.anchor.set(0.5);
         symbol.x = this.reelWidth / 2;
         symbol.y = j * this.symbolSize;
@@ -299,6 +309,7 @@ export class SlotMachine extends Container implements Observer {
       alert("Not enough balance to spin!");
       this.isAutoplay = false;
       this.autoplayRounds = 0;
+      this.fsm.unsubscribe(this);
       return;
     }
     this.balance -= 10; // Deduct cost per spin

@@ -33,7 +33,13 @@ export class SlotStateMachine implements Subject {
   }
 
   subscribe(observer: Observer): void {
-    this.observers.push(observer);
+    if (!this.observers.includes(observer)) {
+      this.observers.push(observer);
+    }
+  }
+
+  unsubscribe(observer: Observer): void {
+    this.observers = this.observers.filter(o => o !== observer);
   }
 
   notify(newState: SlotState, oldState: SlotState): void {

@@ -7,7 +7,7 @@ import { SlotMachine } from "./slotMachine";
 
   // Initialize the application
   await app.init({
-    backgroundColor: 0x444444,
+    backgroundAlpha: 0,
     width: 600,
     height: 600
   });
