@@ -11,6 +11,8 @@ import {
 } from "pixi.js";
 import { SlotStateMachine, SlotState, Observer } from "./SlotStateMachine";
 import { GameLoader } from "./GameLoader";
+import { Spine } from "@esotericsoftware/spine-pixi-v8";
+
 interface Reel {
   container: Container;
   symbols: Sprite[];
@@ -42,6 +44,8 @@ export class SlotMachine extends Container implements Observer {
   private spinButtonContainer?: Container;
   private balanceContainer?: Container;
   private freeSpinContainer?: Container;
+  private spineContainer?: Spine;
+  private prevFreeSpins = 0;
 
   constructor(app: Application) {
     super();
@@ -73,8 +77,16 @@ export class SlotMachine extends Container implements Observer {
 
   public start() {
     this.fsm.setState(SlotState.LOADING);
-    const loader = new GameLoader(() => {
+    const loader = new GameLoader(spineCharacter => {
       this.app.stage.removeChild(loader);
+      if (spineCharacter) {
+        this.spineContainer = spineCharacter;
+        this.spineContainer.x = this.app.screen.width / 2;
+        this.spineContainer.y = this.app.screen.height / 2;
+        this.spineContainer.scale.set(1.5);
+        this.spineContainer.visible = false;
+        this.app.stage.addChild(this.spineContainer);
+      }
       this.createBackground();
       this.createReels();
       this.updateFreeSpinDisplay();
@@ -84,6 +96,44 @@ export class SlotMachine extends Container implements Observer {
     });
 
     this.app.stage.addChild(loader);
+  }
+
+  // Метод для анімації фріспінів
+  private playFreeSpinAnimation(isStart: boolean) {
+    if (!this.spineContainer) return;
+    console.log("Container", this.spineContainer);
+    console.log("playFreeSpinAnimation", isStart);
+    // Показуємо контейнер
+    this.spineContainer.visible = true;
+
+    if (isStart) {
+      // --- START фріспінів ---
+      const blueSkin = this.spineContainer.skeleton.data.findSkin("BLUE");
+      if (blueSkin) {
+        this.spineContainer.skeleton.setSkin(blueSkin);
+        this.spineContainer.skeleton.setToSetupPose();
+      }
+
+      // IN → IDLE
+      this.spineContainer.state.setAnimation(0, "IN", false);
+      this.spineContainer.state.addAnimation(0, "IDLE", true, 0);
+    } else {
+      // --- END фріспінів ---
+      const whiteSkin = this.spineContainer.skeleton.data.findSkin("WHITE");
+      if (whiteSkin) {
+        this.spineContainer.skeleton.setSkin(whiteSkin);
+        this.spineContainer.skeleton.setToSetupPose();
+      }
+
+      // OUT → IDLE
+      this.spineContainer.state.setAnimation(0, "OUT", false);
+      this.spineContainer.state.addAnimation(0, "IDLE", true, 0);
+
+      // Ховаємо контейнер після завершення OUT
+      setTimeout(() => {
+        this.spineContainer!.visible = false;
+      }, 1000); // тайм-аут підбираєш під довжину анімації OUT
+    }
   }
 
   private createBackground() {
@@ -370,9 +420,14 @@ export class SlotMachine extends Container implements Observer {
       winningLines.push(payLine);
     });
 
+    const hadFreeSpins = this.prevFreeSpins > 0;
+    this.prevFreeSpins = this.freeSpins;
+    console.log("hadFreeSpins", hadFreeSpins);
+
     if (Math.random() < 0.2) {
       this.freeSpins += 1;
       this.updateFreeSpinDisplay();
+      this.playFreeSpinAnimation(true); // BLUE
     }
 
     const winText =
@@ -397,6 +452,10 @@ export class SlotMachine extends Container implements Observer {
 
     setTimeout(() => {
       this.app.stage.removeChild(message);
+      if (hadFreeSpins) {
+        this.playFreeSpinAnimation(false); // BLUE
+      }
+
       if (this.freeSpins > 0) {
         this.fsm.setState(SlotState.FREE_SPIN);
         this.spinReels();

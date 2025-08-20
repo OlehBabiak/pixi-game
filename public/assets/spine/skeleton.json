@@ -1,0 +1,86 @@
+{
+"skeleton": {
+	"hash": "0452xZVtNS0",
+	"spine": "4.2.43",
+	"x": -1200,
+	"y": -1200,
+	"width": 2400,
+	"height": 2400,
+	"images": "./images/",
+	"audio": ""
+},
+"bones": [
+	{ "name": "ROOT", "color": "fb0202ff" },
+	{ "name": "main", "parent": "ROOT" },
+	{ "name": "CTRL", "parent": "main" },
+	{ "name": "HEADER_TEXT", "parent": "CTRL", "y": 250, "color": "fc0101ff", "icon": "diamond" },
+	{ "name": "INFO_TEXT", "parent": "CTRL", "y": -250.31, "color": "ff0000ff", "icon": "diamond" },
+	{ "name": "NUMBER_TEXT", "parent": "CTRL", "color": "0d03c6ff", "icon": "romanX" },
+	{ "name": "picture", "parent": "main" }
+],
+"slots": [
+	{ "name": "BACK", "bone": "main", "color": "000000ff", "attachment": "100X100" },
+	{ "name": "100X100", "bone": "picture", "attachment": "BLUE" },
+	{ "name": "100X100_BLUE", "bone": "picture", "attachment": "WHITE" },
+	{ "name": "FREE_SPINS_FEATURE_1_1_TITLE", "bone": "HEADER_TEXT" },
+	{ "name": "FREE_SPINS_FEATURE_1_2_TITLE", "bone": "INFO_TEXT" },
+	{ "name": "NUMBER_TEXT", "bone": "NUMBER_TEXT" }
+],
+"skins": [
+	{
+		"name": "default",
+		"attachments": {
+			"BACK": {
+				"100X100": { "scaleX": 24, "scaleY": 24, "width": 100, "height": 100 }
+			}
+		}
+	},
+	{
+		"name": "BLUE",
+		"attachments": {
+			"100X100": {
+				"BLUE": { "name": "100X100_BLUE", "scaleX": 10, "scaleY": 10, "width": 100, "height": 100 }
+			}
+		}
+	},
+	{
+		"name": "WHITE",
+		"attachments": {
+			"100X100_BLUE": {
+				"WHITE": { "name": "100X100", "scaleX": 10, "scaleY": 10, "width": 100, "height": 100 }
+			}
+		}
+	}
+],
+"animations": {
+	"IDLE": {
+		"bones": {
+			"main": {
+				"scale": [
+					{}
+				]
+			}
+		}
+	},
+	"IN": {
+		"bones": {
+			"main": {
+				"scale": [
+					{ "x": 0, "y": 0 },
+					{ "time": 0.5 }
+				]
+			}
+		}
+	},
+	"OUT": {
+		"bones": {
+			"main": {
+				"scale": [
+					{},
+					{ "time": 0.5, "x": 0, "y": 0 }
+				]
+			}
+		}
+	}
+}
+}
