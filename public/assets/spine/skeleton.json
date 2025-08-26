@@ -1,86 +1,333 @@
 {
-"skeleton": {
-	"hash": "0452xZVtNS0",
-	"spine": "4.2.43",
-	"x": -1200,
-	"y": -1200,
-	"width": 2400,
-	"height": 2400,
-	"images": "./images/",
-	"audio": ""
-},
-"bones": [
-	{ "name": "ROOT", "color": "fb0202ff" },
-	{ "name": "main", "parent": "ROOT" },
-	{ "name": "CTRL", "parent": "main" },
-	{ "name": "HEADER_TEXT", "parent": "CTRL", "y": 250, "color": "fc0101ff", "icon": "diamond" },
-	{ "name": "INFO_TEXT", "parent": "CTRL", "y": -250.31, "color": "ff0000ff", "icon": "diamond" },
-	{ "name": "NUMBER_TEXT", "parent": "CTRL", "color": "0d03c6ff", "icon": "romanX" },
-	{ "name": "picture", "parent": "main" }
-],
-"slots": [
-	{ "name": "BACK", "bone": "main", "color": "000000ff", "attachment": "100X100" },
-	{ "name": "100X100", "bone": "picture", "attachment": "BLUE" },
-	{ "name": "100X100_BLUE", "bone": "picture", "attachment": "WHITE" },
-	{ "name": "FREE_SPINS_FEATURE_1_1_TITLE", "bone": "HEADER_TEXT" },
-	{ "name": "FREE_SPINS_FEATURE_1_2_TITLE", "bone": "INFO_TEXT" },
-	{ "name": "NUMBER_TEXT", "bone": "NUMBER_TEXT" }
-],
-"skins": [
-	{
-		"name": "default",
-		"attachments": {
-			"BACK": {
-				"100X100": { "scaleX": 24, "scaleY": 24, "width": 100, "height": 100 }
-			}
-		}
-	},
-	{
-		"name": "BLUE",
-		"attachments": {
-			"100X100": {
-				"BLUE": { "name": "100X100_BLUE", "scaleX": 10, "scaleY": 10, "width": 100, "height": 100 }
-			}
-		}
-	},
-	{
-		"name": "WHITE",
-		"attachments": {
-			"100X100_BLUE": {
-				"WHITE": { "name": "100X100", "scaleX": 10, "scaleY": 10, "width": 100, "height": 100 }
-			}
-		}
-	}
-],
-"animations": {
-	"IDLE": {
-		"bones": {
-			"main": {
-				"scale": [
-					{}
-				]
-			}
-		}
-	},
-	"IN": {
-		"bones": {
-			"main": {
-				"scale": [
-					{ "x": 0, "y": 0 },
-					{ "time": 0.5 }
-				]
-			}
-		}
-	},
-	"OUT": {
-		"bones": {
-			"main": {
-				"scale": [
-					{},
-					{ "time": 0.5, "x": 0, "y": 0 }
-				]
-			}
-		}
-	}
-}
+    "skeleton": {
+        "hash": "56NJZssm8aY",
+        "spine": "4.0.64",
+        "x": -342,
+        "y": -150,
+        "width": 697,
+        "height": 305.88,
+        "images": "../Sources/images/",
+        "audio": "C:/Work/Other projects/Sources"
+    },
+    "bones": [
+        {
+            "name": "root"
+        },
+        {
+            "name": "bone",
+            "parent": "root",
+            "color": "001674ff"
+        },
+        {
+            "name": "text_slot",
+            "parent": "bone"
+        }
+    ],
+    "slots": [
+        {
+            "name": "Layer 13",
+            "bone": "bone",
+            "attachment": "Layer 13"
+        },
+        {
+            "name": "Snow",
+            "bone": "bone",
+            "attachment": "Snow"
+        },
+        {
+            "name": "text_slot",
+            "bone": "text_slot",
+            "attachment": "text_slot"
+        }
+    ],
+    "skins": [
+        {
+            "name": "default",
+            "attachments": {
+                "Layer 13": {
+                    "Layer 13": {
+                        "type": "mesh",
+                        "uvs": [
+                            1,
+                            1,
+                            0,
+                            1,
+                            0,
+                            0,
+                            1,
+                            0
+                        ],
+                        "triangles": [
+                            1,
+                            2,
+                            3,
+                            1,
+                            3,
+                            0
+                        ],
+                        "vertices": [
+                            355,
+                            -149.12,
+                            -342,
+                            -149.12,
+                            -342,
+                            155.88,
+                            355,
+                            155.88
+                        ],
+                        "hull": 4,
+                        "edges": [
+                            0,
+                            2,
+                            2,
+                            4,
+                            4,
+                            6,
+                            0,
+                            6
+                        ],
+                        "width": 697,
+                        "height": 305
+                    }
+                },
+                "Snow": {
+                    "Snow": {
+                        "type": "mesh",
+                        "uvs": [
+                            1,
+                            0.81176,
+                            1,
+                            1,
+                            0,
+                            1,
+                            0,
+                            0.81537,
+                            0,
+                            0,
+                            1,
+                            0
+                        ],
+                        "triangles": [
+                            4,
+                            5,
+                            0,
+                            3,
+                            4,
+                            0,
+                            1,
+                            2,
+                            3,
+                            1,
+                            3,
+                            0
+                        ],
+                        "vertices": [
+                            342,
+                            -130.63,
+                            342,
+                            -139.06,
+                            -339,
+                            -139.06,
+                            -339,
+                            -131.47,
+                            -339,
+                            56.88,
+                            342,
+                            56.88
+                        ],
+                        "hull": 6,
+                        "edges": [
+                            2,
+                            4,
+                            8,
+                            10,
+                            4,
+                            6,
+                            6,
+                            8,
+                            2,
+                            0,
+                            0,
+                            10,
+                            6,
+                            0
+                        ],
+                        "width": 681,
+                        "height": 231
+                    }
+                },
+                "text_slot": {
+                    "text_slot": {
+                        "width": 1,
+                        "height": 1
+                    }
+                }
+            }
+        }
+    ],
+    "animations": {
+        "empty": {
+            "slots": {
+                "Layer 13": {
+                    "rgba": [
+                        {
+                            "color": "ffffff00"
+                        }
+                    ]
+                },
+                "Snow": {
+                    "rgba": [
+                        {
+                            "color": "ffffff00"
+                        }
+                    ]
+                }
+            }
+        },
+        "idle": {
+            "bones": {
+                "bone": {
+                    "scale": [
+                        {},
+                        {
+                            "time": 1,
+                            "x": 1.039,
+                            "y": 1.039
+                        },
+                        {
+                            "time": 2
+                        }
+                    ]
+                }
+            }
+        },
+        "in": {
+            "slots": {
+                "Layer 13": {
+                    "rgba": [
+                        {
+                            "color": "ffffff00"
+                        },
+                        {
+                            "time": 0.5333,
+                            "color": "ffffffff"
+                        }
+                    ]
+                },
+                "Snow": {
+                    "rgba": [
+                        {
+                            "color": "ffffff00"
+                        },
+                        {
+                            "time": 0.6,
+                            "color": "ffffffff"
+                        }
+                    ]
+                }
+            },
+            "bones": {
+                "bone": {
+                    "rotate": [
+                        {
+                            "time": 0.8667
+                        }
+                    ],
+                    "translate": [
+                        {},
+                        {
+                            "time": 0.4333,
+                            "y": 23.09
+                        },
+                        {
+                            "time": 0.5333,
+                            "y": 16.93
+                        },
+                        {
+                            "time": 0.6667,
+                            "y": -3.74
+                        },
+                        {
+                            "time": 0.7333
+                        }
+                    ],
+                    "scale": [
+                        {
+                            "x": 0.509,
+                            "y": 0.509
+                        },
+                        {
+                            "time": 0.5333,
+                            "x": 1.008,
+                            "y": 1.008
+                        },
+                        {
+                            "time": 0.7333
+                        }
+                    ]
+                }
+            }
+        },
+        "out": {
+            "slots": {
+                "Layer 13": {
+                    "rgba": [
+                        {
+                            "time": 0.4333,
+                            "color": "ffffffff"
+                        },
+                        {
+                            "time": 1,
+                            "color": "ffffff00"
+                        }
+                    ]
+                },
+                "Snow": {
+                    "rgba": [
+                        {
+                            "time": 0.3667,
+                            "color": "ffffffff"
+                        },
+                        {
+                            "time": 1,
+                            "color": "ffffff00"
+                        }
+                    ]
+                }
+            },
+            "bones": {
+                "bone": {
+                    "translate": [
+                        {},
+                        {
+                            "time": 0.1333,
+                            "y": 7.67
+                        },
+                        {
+                            "time": 0.3,
+                            "y": -8.13
+                        },
+                        {
+                            "time": 1
+                        }
+                    ],
+                    "scale": [
+                        {
+                            "time": 0.1333
+                        },
+                        {
+                            "time": 0.3,
+                            "x": 1.042,
+                            "y": 1.042
+                        },
+                        {
+                            "time": 1,
+                            "x": 0.509,
+                            "y": 0.509
+                        }
+                    ]
+                }
+            }
+        }
+    }
 }

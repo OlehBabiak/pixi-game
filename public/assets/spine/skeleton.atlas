@@ -1,8 +1,11 @@
 skeleton.png
-size:206,206
+size:544,704
 filter:Linear,Linear
-pma:true
-100X100
-bounds:2,104,100,100
-100X100_BLUE
-bounds:2,2,100,100
+Layer 13
+bounds:2,2,697,305
+rotate:90
+Snow
+bounds:309,18,681,231
+rotate:90
+text_slot
+bounds:309,15,1,1

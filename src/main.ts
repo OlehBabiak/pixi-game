@@ -1,5 +1,6 @@
 import { Application } from "pixi.js";
 import { SlotMachine } from "./slotMachine";
+import { initDevtools } from "@pixi/devtools";
 
 (async () => {
   // Create a new application
@@ -11,6 +12,8 @@ import { SlotMachine } from "./slotMachine";
     width: 600,
     height: 600
   });
+  // Initialize devtools
+  initDevtools({ app });
   const container = document.getElementById("pixi-container");
   if (container) {
     container.appendChild(app.canvas);
