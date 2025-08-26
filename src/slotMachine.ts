@@ -45,7 +45,8 @@ export class SlotMachine extends Container implements Observer {
   private balanceContainer?: Container;
   private freeSpinContainer?: Container;
   private spineContainer?: Spine;
-  private prevFreeSpins = 0;
+  private wasInFreeSpin: boolean = false;
+  private freeSpinSpineText?: Text;
 
   constructor(app: Application) {
     super();
@@ -101,39 +102,57 @@ export class SlotMachine extends Container implements Observer {
   // Метод для анімації фріспінів
   private playFreeSpinAnimation(isStart: boolean) {
     if (!this.spineContainer) return;
-    console.log("Container", this.spineContainer);
     console.log("playFreeSpinAnimation", isStart);
+    this.spineContainer.autoUpdate = false;
     // Показуємо контейнер
     this.spineContainer.visible = true;
 
     if (isStart) {
-      // --- START фріспінів ---
-      const blueSkin = this.spineContainer.skeleton.data.findSkin("BLUE");
-      if (blueSkin) {
-        this.spineContainer.skeleton.setSkin(blueSkin);
-        this.spineContainer.skeleton.setToSetupPose();
-      }
+      this.spineContainer.state.setAnimation(0, "in", false);
+      this.spineContainer.state.addAnimation(0, "idle", true, 0);
 
-      // IN → IDLE
-      this.spineContainer.state.setAnimation(0, "IN", false);
-      this.spineContainer.state.addAnimation(0, "IDLE", true, 0);
+      // Add or update text in text_slot
+      const slot = this.spineContainer.skeleton.findSlot("text_slot");
+      if (slot) {
+        if (!this.freeSpinSpineText) {
+          const textStyle = new TextStyle({
+            fontFamily: "Arial",
+            fontSize: 36, // Adjust size to fit your board
+            fill: "#ffffff", // White text, adjust as needed
+            align: "center",
+            stroke: { color: "#000000", width: 2 } // Optional outline for visibility
+          });
+
+          this.freeSpinSpineText = new Text({
+            text: `Free Spins: ${this.freeSpins}`,
+            style: textStyle
+          });
+          this.freeSpinSpineText.anchor.set(0.5); // Center the text
+
+          this.spineContainer.addSlotObject(slot, this.freeSpinSpineText, {
+            followAttachmentTimeline: true
+          });
+        } else {
+          this.freeSpinSpineText.text = `Free Spins: ${this.freeSpins}`;
+        }
+      }
     } else {
-      // --- END фріспінів ---
-      const whiteSkin = this.spineContainer.skeleton.data.findSkin("WHITE");
-      if (whiteSkin) {
-        this.spineContainer.skeleton.setSkin(whiteSkin);
-        this.spineContainer.skeleton.setToSetupPose();
-      }
+      this.spineContainer.state.setAnimation(0, "out", false); // Lowercase
+      this.spineContainer.state.addAnimation(0, "idle", true, 0);
 
-      // OUT → IDLE
-      this.spineContainer.state.setAnimation(0, "OUT", false);
-      this.spineContainer.state.addAnimation(0, "IDLE", true, 0);
-
-      // Ховаємо контейнер після завершення OUT
+      // Hide after animation and remove text
       setTimeout(() => {
+        const slot = this.spineContainer?.skeleton.findSlot("text_slot");
+        if (slot && this.freeSpinSpineText) {
+          this.spineContainer?.removeSlotObject(slot); // Один аргумент
+          this.freeSpinSpineText.destroy();
+          this.freeSpinSpineText = undefined;
+        }
         this.spineContainer!.visible = false;
-      }, 1000); // тайм-аут підбираєш під довжину анімації OUT
+      }, 1000);
     }
+    this.spineContainer.autoUpdate = false; // Залишаємо вимкненим, оновлюємо вручну
+    this.app.ticker.add(() => this.spineContainer?.update(this.app.ticker.deltaMS / 1000));
   }
 
   private createBackground() {
@@ -355,14 +374,16 @@ export class SlotMachine extends Container implements Observer {
 
   private spinReels() {
     if (this.fsm.state !== SlotState.IDLE && this.fsm.state !== SlotState.FREE_SPIN) return;
-    if (this.balance < 10) {
+    if (this.balance < 10 && this.freeSpins === 0) {
       alert("Not enough balance to spin!");
       this.isAutoplay = false;
       this.autoplayRounds = 0;
       this.fsm.unsubscribe(this);
       return;
     }
-    this.balance -= 10; // Deduct cost per spin
+    if (this.freeSpins === 0) {
+      this.balance -= 10; // Deduct cost per spin
+    }
     this.updateWinDisplay();
     this.fsm.setState(SlotState.SPINNING);
   }
@@ -420,14 +441,18 @@ export class SlotMachine extends Container implements Observer {
       winningLines.push(payLine);
     });
 
-    const hadFreeSpins = this.prevFreeSpins > 0;
-    this.prevFreeSpins = this.freeSpins;
-    console.log("hadFreeSpins", hadFreeSpins);
-
     if (Math.random() < 0.2) {
-      this.freeSpins += 1;
+      this.freeSpins += 2;
       this.updateFreeSpinDisplay();
-      this.playFreeSpinAnimation(true); // BLUE
+
+      if (!this.wasInFreeSpin) {
+        this.playFreeSpinAnimation(true);
+        this.wasInFreeSpin = true;
+      }
+      //  else if (this.freeSpinSpineText) {
+      //   // If already in free spins, just update the text
+      //   this.freeSpinSpineText.text = `Free Spins: ${this.freeSpins}`;
+      // }
     }
 
     const winText =
@@ -452,20 +477,31 @@ export class SlotMachine extends Container implements Observer {
 
     setTimeout(() => {
       this.app.stage.removeChild(message);
-      if (hadFreeSpins) {
-        this.playFreeSpinAnimation(false); // BLUE
-      }
 
+      // Decrement freeSpins BEFORE starting next spin
       if (this.freeSpins > 0) {
-        this.fsm.setState(SlotState.FREE_SPIN);
-        this.spinReels();
         this.freeSpins--;
         this.updateFreeSpinDisplay();
+        if (this.freeSpinSpineText) {
+          this.freeSpinSpineText.text = `Free Spins: ${this.freeSpins}`;
+        }
+        this.fsm.setState(SlotState.FREE_SPIN);
+        this.spinReels();
       } else if (this.isAutoplay && this.autoplayRounds > 0) {
+        if (this.wasInFreeSpin) {
+          // No add on last spin
+          this.playFreeSpinAnimation(false); // OUT
+          this.wasInFreeSpin = false;
+        }
         this.autoplayRounds--;
         this.fsm.setState(SlotState.IDLE);
         this.spinReels();
       } else {
+        if (this.wasInFreeSpin) {
+          // No add on last spin
+          this.playFreeSpinAnimation(false); // OUT
+          this.wasInFreeSpin = false;
+        }
         this.fsm.setState(SlotState.IDLE);
       }
     }, 1500);

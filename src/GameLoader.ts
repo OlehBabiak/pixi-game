@@ -66,7 +66,7 @@ export class GameLoader extends Container {
         skeleton: "skeleton-data",
         atlas: "skeleton-atlas",
         scale: 1,
-        autoUpdate: true
+        autoUpdate: false
       });
       onComplete(spineCharacter);
     } catch (err) {
