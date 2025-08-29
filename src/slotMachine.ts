@@ -12,20 +12,7 @@ import {
 import { SlotStateMachine, SlotState, Observer } from "./SlotStateMachine";
 import { GameLoader } from "./GameLoader";
 import { Spine } from "@esotericsoftware/spine-pixi-v8";
-
-interface Reel {
-  container: Container;
-  symbols: Sprite[];
-  position: number;
-  speed: number;
-  targetStop: number;
-  spinning: boolean;
-  stopping?: boolean;
-}
-
-interface SymbolSprite extends Sprite {
-  symbolKey: string;
-}
+import { BetData, MenuData, Reel, SymbolSprite } from "./types";
 export class SlotMachine extends Container implements Observer {
   private app: Application;
   private reels: Reel[] = [];
@@ -40,19 +27,36 @@ export class SlotMachine extends Container implements Observer {
   private maxAutoplayRounds = 10;
   private freeSpins = 0;
   private balance: number = 100;
+  private bet: number = 10;
   private fsm: SlotStateMachine;
   private spinButtonContainer?: Container;
+  private menuButtonContainer?: Container;
+  private betButtonContainer?: Container;
   private balanceContainer?: Container;
   private freeSpinContainer?: Container;
   private spineContainer?: Spine;
   private wasInFreeSpin: boolean = false;
   private freeSpinSpineText?: Text;
+  private menuCompiled: (data: MenuData) => string;
+  private betCompiled: (data: BetData) => string;
+  private menuData: MenuData;
 
-  constructor(app: Application) {
+  constructor(
+    app: Application,
+    menuCompiled: (data: MenuData) => string,
+    betCompiled: (data: BetData) => string,
+    menuData: MenuData
+  ) {
     super();
     this.app = app;
+    this.menuCompiled = menuCompiled;
+    this.betCompiled = betCompiled;
+    this.menuData = menuData;
     this.fsm = new SlotStateMachine();
     this.fsm.subscribe(this);
+
+    // Додаємо обробник подій для модальних вікон
+    this.setupModalEventListeners();
   }
 
   update(newState: SlotState): void {
@@ -61,6 +65,8 @@ export class SlotMachine extends Container implements Observer {
         break;
       case SlotState.IDLE:
         this.updateSpinButton();
+        this.updateMenuButton();
+        this.updateBetButton();
         break;
       case SlotState.SPINNING:
         this.startSpin();
@@ -91,6 +97,8 @@ export class SlotMachine extends Container implements Observer {
       this.createReels();
       this.updateFreeSpinDisplay();
       this.updateSpinButton();
+      this.updateMenuButton();
+      this.updateBetButton();
       this.updateWinDisplay();
       this.fsm.setState(SlotState.IDLE);
     });
@@ -98,35 +106,95 @@ export class SlotMachine extends Container implements Observer {
     this.app.stage.addChild(loader);
   }
 
-  // Метод для анімації фріспінів
+  private setupModalEventListeners() {
+    const modalContent = document.getElementById("modal-content")!;
+    modalContent.addEventListener("click", event => {
+      const target = event.target as HTMLElement;
+      console.log("Target", target);
+      const action = target.getAttribute("data-action");
+      if (action) {
+        this.handleModalAction(action);
+      }
+    });
+
+    modalContent.addEventListener("change", event => {
+      const target = event.target as HTMLSelectElement;
+      if (target.tagName === "SELECT" && target.getAttribute("data-action") === "updateBet") {
+        this.updateBet(parseInt(target.value, 10));
+      }
+    });
+  }
+
+  private showModal(type: "menu" | "bet") {
+    const modalContent = document.getElementById("modal-content")!;
+    const modalOverlay = document.getElementById("modal-overlay")!;
+    const data: MenuData | { currentBet: number } =
+      type === "menu" ? this.menuData : { currentBet: this.bet };
+    modalContent.innerHTML =
+      type === "menu" ? this.menuCompiled(data as MenuData) : this.betCompiled(data as BetData);
+    modalContent.style.display = "block";
+    modalOverlay.style.display = "block";
+  }
+
+  private closeModal() {
+    console.log("close");
+    const modalContent = document.getElementById("modal-content")!;
+    const modalOverlay = document.getElementById("modal-overlay")!;
+    modalContent.style.display = "none";
+    modalOverlay.style.display = "none";
+  }
+
+  private updateBet(newBet: number) {
+    this.bet = newBet;
+    this.updateWinDisplay();
+    this.closeModal();
+    console.log(`Bet updated to $${this.bet}`);
+  }
+
+  private handleModalAction(action: string) {
+    switch (action) {
+      case "info":
+        alert("Info page not implemented yet!");
+        this.closeModal();
+        break;
+      case "settings":
+        alert("Settings page not implemented yet!");
+        this.closeModal();
+        break;
+      case "new_game":
+        window.location.reload();
+        break;
+      case "close":
+        this.closeModal();
+        break;
+    }
+  }
+
   private playFreeSpinAnimation(isStart: boolean) {
     if (!this.spineContainer) return;
     console.log("playFreeSpinAnimation", isStart);
-    // Показуємо контейнер
     this.spineContainer.visible = true;
 
     if (isStart) {
       this.spineContainer.state.setAnimation(0, "in", false);
       this.spineContainer.state.addAnimation(0, "idle", true, 0);
 
-      // Add or update text in text_slot
       const slot = this.spineContainer.skeleton.findSlot("text_slot");
       if (slot) {
         if (!this.freeSpinSpineText) {
           const textStyle = new TextStyle({
             fontFamily: "Arial",
-            fontSize: 36, // Adjust size to fit your board
-            fill: "#ffffff", // White text, adjust as needed
+            fontSize: 36,
+            fill: "#ffffff",
             align: "center",
-            stroke: { color: "#000000", width: 2 } // Optional outline for visibility
+            stroke: { color: "#000000", width: 2 }
           });
 
           this.freeSpinSpineText = new Text({
             text: `Free Spins: ${this.freeSpins}`,
             style: textStyle
           });
-          this.freeSpinSpineText.anchor.set(0.5); // Center the text
-
+          this.freeSpinSpineText.anchor.set(0.5);
           this.spineContainer.addSlotObject(slot, this.freeSpinSpineText, {
             followAttachmentTimeline: true
           });
@@ -135,14 +203,13 @@ export class SlotMachine extends Container implements Observer {
         }
       }
     } else {
-      this.spineContainer.state.setAnimation(0, "out", false); // Lowercase
+      this.spineContainer.state.setAnimation(0, "out", false);
       this.spineContainer.state.addAnimation(0, "idle", true, 0);
 
-      // Hide after animation and remove text
       setTimeout(() => {
         const slot = this.spineContainer?.skeleton.findSlot("text_slot");
         if (slot && this.freeSpinSpineText) {
-          this.spineContainer?.removeSlotObject(slot); // Один аргумент
+          this.spineContainer?.removeSlotObject(slot);
           this.freeSpinSpineText.destroy();
           this.freeSpinSpineText = undefined;
         }
@@ -154,12 +221,11 @@ export class SlotMachine extends Container implements Observer {
 
   private createBackground() {
     const secondaryBGTexture = Assets.get("secondaryBG");
-
     if (secondaryBGTexture) {
       const secondaryBG = new Sprite(secondaryBGTexture);
       secondaryBG.width = this.app.screen.width;
       secondaryBG.height = this.app.screen.height;
-      this.app.stage.addChildAt(secondaryBG, 0); // на задній план Pixi
+      this.app.stage.addChildAt(secondaryBG, 0);
     }
   }
 
@@ -172,7 +238,7 @@ export class SlotMachine extends Container implements Observer {
     const container = new Container();
     this.balanceContainer = this.updateContainer(this.balanceContainer, container);
     const balance = new Text({
-      text: `Balance: $${this.balance}`,
+      text: `Balance: $${this.balance} | Bet: $${this.bet}`,
       style: this.defaultTextStyle
     });
     balance.x = 20;
@@ -184,7 +250,7 @@ export class SlotMachine extends Container implements Observer {
     const container = new Container();
     this.freeSpinContainer = this.updateContainer(this.freeSpinContainer, container);
     const freeSpin = new Text({
-      text: `Free Spines: ${this.freeSpins}`,
+      text: `Free Spins: ${this.freeSpins}`,
       style: this.defaultTextStyle
     });
     freeSpin.x = 20;
@@ -205,7 +271,6 @@ export class SlotMachine extends Container implements Observer {
       container.y = 100;
       this.app.stage.addChild(container);
 
-      // Рамка
       const frame = new Graphics()
         .rect(0, this.symbolSize / 2, this.reelWidth, this.symbolSize * this.reelHeight)
         .stroke({ width: 4, color: 0xffd700 });
@@ -213,7 +278,6 @@ export class SlotMachine extends Container implements Observer {
       frame.y = container.y;
       this.app.stage.addChild(frame);
 
-      // Маска
       const maskShape = new Graphics()
         .rect(0, this.symbolSize / 2, this.reelWidth, this.symbolSize * this.reelHeight)
         .fill(0xffffff);
@@ -241,10 +305,7 @@ export class SlotMachine extends Container implements Observer {
         symbol.y = j * this.symbolSize;
         symbol.width = this.symbolSize;
         symbol.height = this.symbolSize;
-
-        // Зберігаємо ключ символу для checkWin
         symbol.symbolKey = key;
-
         container.addChild(symbol);
         reel.symbols.push(symbol);
       }
@@ -258,7 +319,6 @@ export class SlotMachine extends Container implements Observer {
   private updateSpinButton() {
     const container = new Container();
     this.spinButtonContainer = this.updateContainer(this.spinButtonContainer, container, 2);
-    // Background
     const background = new Graphics().fill(0x3333ff).roundRect(0, 0, 200, 60, 10).fill();
     const disabledBackground = new Graphics().fill(0x666666).roundRect(0, 0, 200, 60, 10).fill();
 
@@ -321,7 +381,6 @@ export class SlotMachine extends Container implements Observer {
       });
     }
 
-    // Autoplay button
     const autoText = new Text({ text: "AUTO", style });
     autoText.anchor.set(0.5);
     autoText.x = 300;
@@ -331,13 +390,13 @@ export class SlotMachine extends Container implements Observer {
     autoText.cursor = "pointer";
     autoText.on("pointerdown", () => {
       this.isAutoplay = !this.isAutoplay;
-      if (this.isAutoplay && this.fsm.state === SlotState.IDLE && this.balance >= 10) {
+      if (this.isAutoplay && this.fsm.state === SlotState.IDLE && this.balance >= this.bet) {
         this.autoplayRounds = this.maxAutoplayRounds;
         this.spinReels();
         this.updateSpinButton();
       } else {
         this.updateSpinButton();
-        alert("Not enough rounds to autoplay!");
+        alert("Not enough balance or rounds to autoplay!");
       }
     });
 
@@ -345,9 +404,85 @@ export class SlotMachine extends Container implements Observer {
     this.app.stage.addChild(container);
   }
 
+  private updateMenuButton() {
+    const container = new Container();
+    this.menuButtonContainer = this.updateContainer(this.menuButtonContainer, container, 2);
+    const background = new Graphics().fill(0x3333ff).roundRect(0, 0, 80, 40, 10).fill();
+
+    const style = new TextStyle({
+      fontFamily: "Arial",
+      fontSize: 16,
+      fill: "#eeecebff",
+      stroke: {
+        color: 0x4a1850,
+        width: 3
+      }
+    });
+
+    const button = new Text({
+      text: "MENU",
+      style: style
+    });
+    button.anchor.set(0.5);
+    button.x = 40;
+    button.y = 20;
+    container.addChild(background, button);
+
+    container.interactive = true;
+    container.eventMode = "dynamic";
+    container.cursor = "pointer";
+    container.x = 550;
+    container.y = this.app.screen.height - 555;
+    container.pivot.set(40, 20);
+
+    container.on("pointerdown", () => {
+      this.showModal("menu");
+    });
+
+    this.app.stage.addChild(container);
+  }
+
+  private updateBetButton() {
+    const container = new Container();
+    this.betButtonContainer = this.updateContainer(this.betButtonContainer, container, 2);
+    const background = new Graphics().fill(0xff9900).roundRect(0, 0, 80, 40, 10).fill();
+
+    const style = new TextStyle({
+      fontFamily: "Arial",
+      fontSize: 16,
+      fill: "#ffffff",
+      stroke: {
+        color: 0x4a1850,
+        width: 3
+      }
+    });
+
+    const button = new Text({
+      text: "BET",
+      style: style
+    });
+    button.anchor.set(0.5);
+    button.x = 40;
+    button.y = 20;
+    container.addChild(background, button);
+
+    container.interactive = true;
+    container.eventMode = "dynamic";
+    container.cursor = "pointer";
+    container.x = 650;
+    container.y = this.app.screen.height - 555;
+    container.pivot.set(40, 20);
+
+    container.on("pointerdown", () => {
+      this.showModal("bet");
+    });
+
+    this.app.stage.addChild(container);
+  }
+
   private spinReels(deductCostPerSpin: boolean = true) {
     if (this.fsm.state !== SlotState.IDLE && this.fsm.state !== SlotState.FREE_SPIN) return;
-    if (this.balance < 10 && this.freeSpins === 0) {
+    if (this.balance < this.bet && this.freeSpins === 0) {
       alert("Not enough balance to spin!");
       this.isAutoplay = false;
       this.autoplayRounds = 0;
@@ -356,9 +491,9 @@ export class SlotMachine extends Container implements Observer {
     }
     console.log("deductCostPerSpin: ", deductCostPerSpin);
     if (deductCostPerSpin) {
-      this.balance -= 10; // Deduct cost per spin
+      this.balance -= this.bet; // Deduct current bet
+      this.updateWinDisplay();
     }
-    this.updateWinDisplay();
     this.fsm.setState(SlotState.SPINNING);
   }
 
@@ -397,19 +532,19 @@ export class SlotMachine extends Container implements Observer {
 
       switch (payLine) {
         case "top":
-          winAmount += 100;
+          winAmount += this.bet * 1; // Adjusted to scale with bet
           break;
         case "middle":
-          winAmount += 300;
+          winAmount += this.bet * 3;
           break;
         case "bottom":
-          winAmount += 100;
+          winAmount += this.bet * 1;
           break;
         case "diagonalDown":
-          winAmount += 50;
+          winAmount += this.bet * 0.5;
           break;
         case "diagonalUp":
-          winAmount += 50;
+          winAmount += this.bet * 0.5;
           break;
       }
       winningLines.push(payLine);
@@ -487,9 +622,7 @@ export class SlotMachine extends Container implements Observer {
         first.width = this.symbolSize;
         first.height = this.symbolSize;
         first.y = reel.symbols[reel.symbols.length - 1].y + this.symbolSize;
-
         first.symbolKey = key;
-
         reel.symbols.push(first);
       }
 
@@ -534,4 +667,10 @@ export class SlotMachine extends Container implements Observer {
     fontSize: 24,
     fill: 0xffffff
   });
+
+  public setBet(newBet: number) {
+    this.bet = newBet;
+    this.updateWinDisplay();
+    console.log(`Bet updated to $${this.bet}`);
+  }
 }

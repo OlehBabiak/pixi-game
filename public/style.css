@@ -14,3 +14,53 @@ body {
   justify-content: center;
   align-items: center;
 }
+
+.modal {
+  background: #1a1a1a;
+  padding: 20px;
+  border-radius: 10px;
+  text-align: center;
+}
+
+.modal h2 {
+  color: #fff;
+  margin-bottom: 20px;
+}
+
+.menu-list {
+  list-style: none;
+  padding: 0;
+}
+
+.menu-list li {
+  margin: 10px 0;
+}
+
+.menu-list a {
+  color: #fff;
+  text-decoration: none;
+  padding: 5px 10px;
+}
+
+.menu-list a:hover {
+  background: #333;
+}
+
+.modal button {
+  background: #ff9900;
+  border: none;
+  padding: 10px 20px;
+  color: #fff;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.modal button:hover {
+  background: #e68a00;
+}
+
+.modal select {
+  padding: 5px;
+  margin: 10px 0;
+  font-size: 16px;
+}
