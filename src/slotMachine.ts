@@ -13,6 +13,7 @@ import { SlotStateMachine, SlotState, Observer } from "./SlotStateMachine";
 import { GameLoader } from "./GameLoader";
 import { Spine } from "@esotericsoftware/spine-pixi-v8";
 import { BetData, MenuData, Reel, SymbolSprite } from "./types";
+import { betOptions } from "./constants";
 export class SlotMachine extends Container implements Observer {
   private app: Application;
   private reels: Reel[] = [];
@@ -128,10 +129,18 @@ export class SlotMachine extends Container implements Observer {
   private showModal(type: "menu" | "bet") {
     const modalContent = document.getElementById("modal-content")!;
     const modalOverlay = document.getElementById("modal-overlay")!;
-    const data: MenuData | { currentBet: number } =
-      type === "menu" ? this.menuData : { currentBet: this.bet };
+
+    const data =
+      type === "menu"
+        ? this.menuData
+        : {
+            currentBet: this.bet,
+            betOptions
+          };
+
     modalContent.innerHTML =
       type === "menu" ? this.menuCompiled(data as MenuData) : this.betCompiled(data as BetData);
+
     modalContent.style.display = "block";
     modalOverlay.style.display = "block";
   }

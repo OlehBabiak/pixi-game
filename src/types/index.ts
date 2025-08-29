@@ -25,4 +25,5 @@ export interface MenuData {
 
 export interface BetData {
   currentBet: number;
+  betOptions: number[];
 }

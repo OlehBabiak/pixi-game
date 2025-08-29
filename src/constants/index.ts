@@ -1,7 +1,5 @@
 import { MenuData } from "../types";
 
-export const currentBet = 10;
-
 export const menuData: MenuData = {
   items: [
     { name: "Info", action: "info" },
@@ -9,3 +7,5 @@ export const menuData: MenuData = {
     { name: "New Game", action: "new_game" }
   ]
 };
+
+export const betOptions: number[] = [10, 25, 50, 100];
