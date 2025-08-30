@@ -34,7 +34,7 @@ export class GameLoader extends Container {
       .fill({ color: 0x00ff00 });
     this.progressBarFill.scale.x = 0;
 
-    const centerX = 300 - this.progressWidth / 2;
+    const centerX = 400 - this.progressWidth / 2;
     const centerY = 300 - this.progressHeight / 2;
 
     this.progressBarBg.position.set(centerX, centerY);
