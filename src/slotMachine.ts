@@ -14,6 +14,8 @@ import { GameLoader } from "./GameLoader";
 import { Spine } from "@esotericsoftware/spine-pixi-v8";
 import { BetData, MenuData, Reel, SymbolSprite } from "./types";
 import { betOptions } from "./constants";
+// import { BigWin } from "./BigWin";
+import { initCoinAnimation } from "./coinAnimation";
 export class SlotMachine extends Container implements Observer {
   private app: Application;
   private reels: Reel[] = [];
@@ -308,7 +310,6 @@ export class SlotMachine extends Container implements Observer {
         const key = this.randomSymbolKey();
         const texture = Assets.get(key);
         const symbol: SymbolSprite = new Sprite(texture) as SymbolSprite;
-        console.log(`Assets: ${Assets.get(key)} for key ${key}`);
         symbol.anchor.set(0.5);
         symbol.x = this.reelWidth / 2;
         symbol.y = j * this.symbolSize;
@@ -526,6 +527,8 @@ export class SlotMachine extends Container implements Observer {
   private checkWin() {
     let winAmount = 0;
     const winningLines: string[] = [];
+    // const animation = new BigWin("app");
+    const stopAnimation = initCoinAnimation("app");
 
     const payLines = {
       top: this.reels.map(reel => (reel.symbols[1] as SymbolSprite).symbolKey),
@@ -541,18 +544,28 @@ export class SlotMachine extends Container implements Observer {
 
       switch (payLine) {
         case "top":
+          initCoinAnimation("app");
+          // animation.start();
           winAmount += this.bet * 1; // Adjusted to scale with bet
           break;
         case "middle":
+          initCoinAnimation("app");
+          // animation.start();
           winAmount += this.bet * 3;
           break;
         case "bottom":
+          initCoinAnimation("app");
+          // animation.start();
           winAmount += this.bet * 1;
           break;
         case "diagonalDown":
+          initCoinAnimation("app");
+          // animation.start();
           winAmount += this.bet * 0.5;
           break;
         case "diagonalUp":
+          initCoinAnimation("app");
+          // animation.start();
           winAmount += this.bet * 0.5;
           break;
       }
@@ -613,6 +626,10 @@ export class SlotMachine extends Container implements Observer {
         this.wasInFreeSpin = false;
       }
     }, 1500);
+    setTimeout(() => {
+      stopAnimation();
+      // animation.stop();
+    }, 5000);
   }
 
   private updateReels(deltaMS: number) {
