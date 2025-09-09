@@ -56,7 +56,7 @@ export class GameLoader extends Container {
       await Assets.load(
         this.assets.map(a => a.alias),
         (progress: number) => {
-          console.log(progress);
+          // console.log(progress);
           this.updateProgressBar(progress);
         }
       );
